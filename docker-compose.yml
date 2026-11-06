@@ -1,0 +1,40 @@
+# One command runs the whole stack: docker compose up --build
+# Web: http://localhost:8080   API docs: http://localhost:8000/docs
+# The defaults below are for local development only. Set real values in your shell before deploying.
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: shoptally
+      MYSQL_USER: shoptally
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-shoptally-dev}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root-dev}
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: mysql+pymysql://shoptally:${MYSQL_PASSWORD:-shoptally-dev}@db:3306/shoptally
+      JWT_SECRET: ${JWT_SECRET:-local-development-only-secret-0123456789}
+      CORS_ORIGINS: http://localhost:8080
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+volumes:
+  db-data:
