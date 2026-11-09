@@ -36,7 +36,7 @@ p { margin: 0; }
 .muted { color: var(--muted); }
 .num { font-variant-numeric: tabular-nums; }
 
-.shell { max-width: 960px; margin: 0 auto; padding: var(--s5) var(--s4) 104px; }
+.shell { max-width: 960px; margin: 0 auto; padding: var(--s5) var(--s4) calc(104px + env(safe-area-inset-bottom)); }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); margin-bottom: var(--s5); }
 .brand { display: flex; align-items: center; gap: var(--s2); font-weight: 700; font-size: 1.1rem; }
 .brand-mark { width: 28px; height: 28px; border-radius: 8px; background: var(--accent); display: grid; place-items: center; color: var(--accent-ink); font-size: 15px; }
@@ -79,8 +79,9 @@ p { margin: 0; }
 .row .name { font-weight: 600; }
 .row small { color: var(--muted); }
 
-label { display: grid; gap: 6px; font-weight: 600; font-size: 0.9rem; }
+label { display: grid; gap: 6px; min-width: 0; font-weight: 600; font-size: 0.9rem; }
 input, select {
+  width: 100%; min-width: 0;
   font: inherit; font-size: 16px; min-height: 44px; padding: 0 var(--s3);
   border: 1px solid oklch(0.8 0.01 95); border-radius: 10px; background: var(--surface); color: var(--ink);
 }
