@@ -14,6 +14,7 @@ from ..services.statement import StatementError, parse_statement
 
 router = APIRouter(prefix="/api/reconciliation", tags=["reconciliation"])
 MAX_BYTES = 2 * 1024 * 1024
+MAX_ROWS = 5_000  # a busy shop does a few hundred MoMo payments a day
 
 
 @router.post("", response_model=ReconciliationOut)
@@ -33,6 +34,11 @@ async def reconcile_statement(
         rows, skipped = parse_statement(text)
     except StatementError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from None
+    if len(rows) > MAX_ROWS:
+        raise HTTPException(
+            status.HTTP_413_CONTENT_TOO_LARGE,
+            f"Statement has {len(rows)} payments; upload at most {MAX_ROWS} at a time",
+        )
 
     window = get_settings().match_window_minutes
     # A statement covers whole days, so compare against every MoMo sale on those days.

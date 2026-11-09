@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
@@ -64,6 +64,22 @@ class SaleIn(BaseModel):
     momo_reference: str | None = Field(default=None, max_length=80)
     customer_phone: str | None = Field(default=None, max_length=20)
     created_at: datetime | None = None  # lets a shop back-fill a sale it forgot to record
+
+    @field_validator("created_at")
+    @classmethod
+    def sane_back_fill(cls, v: datetime | None) -> datetime | None:
+        """Store naive UTC, and only allow back-filling within the last 31 days."""
+        if v is None:
+            return None
+        if v.tzinfo is not None:
+            v = v.astimezone(UTC)
+        v = v.replace(tzinfo=None)
+        now = datetime.now(UTC).replace(tzinfo=None)
+        if v > now + timedelta(minutes=5):
+            raise ValueError("A sale can't be dated in the future")
+        if v < now - timedelta(days=31):
+            raise ValueError("You can only back-fill sales from the last 31 days")
+        return v
 
     @field_validator("momo_reference")
     @classmethod

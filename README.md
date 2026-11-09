@@ -72,7 +72,7 @@ Settings come from environment variables: `DATABASE_URL`, `JWT_SECRET`, `CORS_OR
 ## Tests
 
 ```bash
-cd backend && pytest -q      # 39 tests: statement parsing, matching rules, API flows, shop isolation
+cd backend && pytest -q      # 45 tests: statement parsing, matching rules, API flows, shop isolation, abuse limits
 cd frontend && npm test      # money formatting and parsing
 ```
 

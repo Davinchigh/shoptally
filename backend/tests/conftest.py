@@ -7,6 +7,7 @@ os.environ.setdefault("JWT_SECRET", "test-secret-with-enough-length-0123456789")
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
+from app import throttle  # noqa: E402
 from app.db import Base, engine  # noqa: E402
 from app.main import app  # noqa: E402
 
@@ -15,6 +16,7 @@ from app.main import app  # noqa: E402
 def fresh_db():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+    throttle.reset_all()
     yield
     Base.metadata.drop_all(bind=engine)
 

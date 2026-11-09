@@ -44,7 +44,7 @@ def record_sale(body: SaleIn, shop: Shop = Depends(current_shop), db: Session = 
         momo_reference=body.momo_reference,
         customer_phone=body.customer_phone,
         total_pesewas=0,
-        created_at=(body.created_at.replace(tzinfo=None) if body.created_at else utcnow()),
+        created_at=body.created_at or utcnow(),
     )
     total = 0
     for pid, qty in wanted.items():
