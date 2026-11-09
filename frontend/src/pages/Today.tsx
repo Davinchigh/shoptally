@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, type Daily, type Product, type Sale } from "../api";
 import { amount, ghs } from "../money";
-import { Icon } from "../ui";
+import { Icon, useGlassThumb } from "../ui";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const clock = (iso: string) => new Date(iso.endsWith("Z") ? iso : iso + "Z").toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
@@ -14,6 +14,7 @@ export default function Today({ shopName, initialDay, onSell }: { shopName: stri
   const [names, setNames] = useState<Record<number, string>>({});
   const [filter, setFilter] = useState<Filter>("all");
   const [error, setError] = useState("");
+  const chipsRef = useGlassThumb((["all", "momo", "cash"] as Filter[]).indexOf(filter));
 
   useEffect(() => {
     setData(null); setSales(null); setError("");
@@ -63,7 +64,8 @@ export default function Today({ shopName, initialDay, onSell }: { shopName: stri
         </div>
       )}
 
-      <div className="chips" role="group" aria-label="Show receipts">
+      <div className="chips" role="group" aria-label="Show receipts" ref={chipsRef}>
+        <span className="thumb" aria-hidden="true" />
         {(["all", "momo", "cash"] as Filter[]).map((f) => (
           <button key={f} aria-pressed={filter === f} onClick={() => setFilter(f)}>
             {f === "all" ? "All" : f === "momo" ? "MoMo" : "Cash"} {sales ? count(f) : ""}

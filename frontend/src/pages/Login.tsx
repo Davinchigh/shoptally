@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { api, token } from "../api";
-import { Mark } from "../ui";
+import { Logo } from "../ui";
 
 export default function Login({ onDone }: { onDone: () => void }) {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -32,7 +32,7 @@ export default function Login({ onDone }: { onDone: () => void }) {
   return (
     <div className="auth">
       <section className="hero">
-        <div className="brand"><Mark />ShopTally</div>
+        <Logo intro />
         <h1>Know what you sold, and that every MoMo payment came in.</h1>
         <p>Record sales at the counter, watch your stock, and check the day's MoMo statement against your receipts.</p>
       </section>

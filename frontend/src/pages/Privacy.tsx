@@ -1,10 +1,10 @@
-import { Mark } from "../ui";
+import { Logo } from "../ui";
 
 export default function Privacy({ onBack }: { onBack: () => void }) {
   return (
     <div className="auth">
       <section className="hero">
-        <div className="brand"><Mark />ShopTally</div>
+        <Logo />
         <h1>How ShopTally uses your data</h1>
         <p>Last updated 9 November 2026</p>
       </section>

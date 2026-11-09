@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, type Product } from "../api";
 import { amount, cartTotal, ghs } from "../money";
-import { Icon } from "../ui";
+import { Icon, useGlassThumb } from "../ui";
 
 export default function Sell({ onSold }: { onSold: (message: string) => void }) {
   const [products, setProducts] = useState<Product[] | null>(null);
@@ -12,6 +12,7 @@ export default function Sell({ onSold }: { onSold: (message: string) => void }) 
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const segRef = useGlassThumb(method === "momo" ? 0 : 1);
 
   useEffect(() => { api.products().then(setProducts).catch((e) => setError(e.message)); }, []);
 
@@ -83,7 +84,8 @@ export default function Sell({ onSold }: { onSold: (message: string) => void }) 
       </div>
 
       <section className="order" aria-label="This sale">
-        <div className="seg" role="group" aria-label="How they paid">
+        <div className="seg" role="group" aria-label="How they paid" ref={segRef}>
+          <span className="thumb" aria-hidden="true" />
           <button aria-pressed={method === "momo"} onClick={() => setMethod("momo")}>MoMo</button>
           <button aria-pressed={method === "cash"} onClick={() => setMethod("cash")}>Cash</button>
         </div>

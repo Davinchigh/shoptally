@@ -26,15 +26,72 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
   );
 }
 
-/** The ShopTally mark: a receipt with a tick on it. */
-export function Mark() {
+/** The ShopTally mark: four tally strokes and a slash. With `intro`, it is counted in and the name follows. */
+export function Logo({ intro = false }: { intro?: boolean }) {
   return (
-    <svg className="mark" width="30" height="30" viewBox="0 0 32 32" aria-hidden="true">
-      <rect width="32" height="32" rx="8" fill="var(--ink)" />
-      <path d="M10 7h12v18l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4-2 1.4z" fill="var(--accent)" />
-      <path d="m12.5 15.5 2.5 2.5 4.6-5" fill="none" stroke="var(--ink)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <span className={`brand${intro ? " intro" : ""}`} aria-label="ShopTally">
+      <span className="tally" aria-hidden="true">
+        <svg viewBox="0 0 30 30">
+          {[5, 10.5, 16, 21.5].map((x, n) => <line key={n} x1={x} y1={5} x2={x} y2={25} style={{ ["--n" as string]: n }} />)}
+          <line className="slash" x1={2} y1={21} x2={27} y2={9} style={{ ["--n" as string]: 4 }} />
+        </svg>
+      </span>
+      <span className="word" aria-hidden="true">
+        {[..."ShopTally"].map((c, i) => <span key={i} style={{ ["--c" as string]: i }}>{c}</span>)}
+      </span>
+    </span>
   );
+}
+
+/** Play the logo intro once per browser session, not on every screen. */
+export function useIntroOnce(key = "shoptally.intro") {
+  const [play] = useState(() => {
+    try { if (sessionStorage.getItem(key)) return false; sessionStorage.setItem(key, "1"); return true; } catch { return true; }
+  });
+  return play;
+}
+
+/**
+ * Glass thumb that slides to the active option on a spring and stretches a little with speed.
+ * Put <span className="thumb" /> as the first child of the container and pass the active index.
+ */
+export function useGlassThumb(active: number) {
+  const ref = useRef<HTMLDivElement>(null);
+  const st = useRef({ x: 0, w: 0, v: 0, raf: 0, ready: false });
+  useLayoutEffect(() => {
+    const box = ref.current;
+    const thumb = box?.querySelector<HTMLElement>(":scope > .thumb");
+    const items = box ? [...box.querySelectorAll<HTMLElement>(":scope > button")] : [];
+    const target = items[active];
+    if (!box || !thumb || !target) return;
+    const s = st.current;
+    const tx = target.offsetLeft, tw = target.offsetWidth;
+    const set = (x: number, w: number, v: number) => {
+      const stretch = 1 + Math.min(0.18, Math.abs(v) / 4500);
+      const squash = 1 - Math.min(0.08, Math.abs(v) / 9000);
+      thumb.style.width = `${w}px`;
+      thumb.style.transform = `translateX(${x}px) scale(${stretch}, ${squash})`;
+    };
+    cancelAnimationFrame(s.raf);
+    if (!s.ready || reduced()) { s.x = tx; s.w = tw; s.v = 0; s.ready = true; set(tx, tw, 0); return; }
+    const k = (2 * Math.PI / 0.32) ** 2, c = (4 * Math.PI * 0.82) / 0.32;
+    let last = performance.now();
+    const step = (now: number) => {
+      const dt = Math.min(0.034, (now - last) / 1000); last = now;
+      for (let i = 0; i < 6; i++) { const h = dt / 6; s.v += (-k * (s.x - tx) - c * s.v) * h; s.x += s.v * h; }
+      s.w += (tw - s.w) * Math.min(1, dt * 18);
+      if (Math.abs(s.v) < 2 && Math.abs(s.x - tx) < 0.5) { s.x = tx; s.w = tw; s.v = 0; set(tx, tw, 0); return; }
+      set(s.x, s.w, s.v);
+      s.raf = requestAnimationFrame(step);
+    };
+    s.raf = requestAnimationFrame(step);
+  });
+  useEffect(() => {
+    const onResize = () => { st.current.ready = false; };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return ref;
 }
 
 /* ---------- Springs (damping ratio + response, as Apple describes them) ---------- */

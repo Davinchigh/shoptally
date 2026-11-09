@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, token } from "./api";
 import Login from "./pages/Login";
 import Privacy from "./pages/Privacy";
@@ -6,7 +6,7 @@ import Reconcile from "./pages/Reconcile";
 import Sell from "./pages/Sell";
 import Stock from "./pages/Stock";
 import Today from "./pages/Today";
-import { Icon, Mark, useToast } from "./ui";
+import { Icon, Logo, useGlassThumb, useIntroOnce, useToast } from "./ui";
 
 // The demo shop's sales and the sample MoMo statement are both from this day.
 const DEMO_DAY = "2026-11-05";
@@ -27,6 +27,13 @@ export default function App() {
   const [route, setRoute] = useState<Route>(routeFromHash);
   const [version, setVersion] = useState(0); // bump to refresh screens after a sale or restock
   const [toastNode, toast] = useToast();
+  const intro = useIntroOnce();
+  const order = Object.keys(LABELS) as Tab[];
+  const activeTab = order.indexOf(route as Tab);
+  const tabsRef = useGlassThumb(Math.max(0, activeTab));
+  const prevTab = useRef(activeTab);
+  const dir = activeTab >= prevTab.current ? 1 : -1;
+  useEffect(() => { prevTab.current = activeTab; }, [activeTab]);
 
   useEffect(() => {
     const onHash = () => { setRoute(routeFromHash()); window.scrollTo(0, 0); };
@@ -53,7 +60,7 @@ export default function App() {
     <div className={`app${tab === "today" ? " has-cta" : ""}`}>
       <a className="skip" href="#main">Skip to content</a>
       <header className="masthead">
-        <div className="brand"><Mark />ShopTally</div>
+        <span className="logo-wrap"><Logo intro={intro} /></span>
         {isDemo && <span className="chip-demo" title="Made-up products and sales for trying the app">Demo shop</span>}
         <button className="icon-btn" aria-label={shopName ? `Sign out of ${shopName}` : "Sign out"}
           onClick={() => { token.clear(); setAuthed(false); window.location.hash = ""; }}>
@@ -61,7 +68,7 @@ export default function App() {
         </button>
       </header>
 
-      <main id="main">
+      <main id="main" key={tab} className="view" style={{ ["--dir" as string]: dir }}>
         {tab === "today" && <Today key={`${version}-${isDemo}`} shopName={shopName} initialDay={isDemo ? DEMO_DAY : undefined} onSell={() => go("sell")} />}
         {tab === "sell" && <Sell key={version} onSold={(msg) => { changed(); toast(msg); }} />}
         {tab === "stock" && <Stock key={version} onChanged={(msg) => { changed(); toast(msg); }} />}
@@ -70,7 +77,8 @@ export default function App() {
 
       <p className="foot"><a href="#privacy">How ShopTally uses your data</a></p>
 
-      <nav className="tabbar" aria-label="Main">
+      <nav className="tabbar" aria-label="Main" ref={tabsRef}>
+        <span className="thumb" aria-hidden="true" />
         {(Object.keys(LABELS) as Tab[]).map((t) => (
           <button key={t} className="tab" aria-current={tab === t ? "page" : undefined} onClick={() => go(t)}>
             <span className="pill"><Icon name={t} /></span>
