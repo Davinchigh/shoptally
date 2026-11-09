@@ -1,0 +1,2 @@
+# Vercel installs this for the API function in api/index.py.
+-r backend/requirements.txt

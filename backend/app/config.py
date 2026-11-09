@@ -22,6 +22,15 @@ class Settings(BaseSettings):
             raise RuntimeError("Set JWT_SECRET to a random string of at least 32 characters before running in production.")
 
     @property
+    def sqlalchemy_url(self) -> str:
+        """Hosted Postgres (Neon, Vercel) hands out postgres:// URLs; use the psycopg 3 driver for them."""
+        url = self.database_url
+        for prefix in ("postgres://", "postgresql://"):
+            if url.startswith(prefix):
+                return "postgresql+psycopg://" + url[len(prefix) :]
+        return url
+
+    @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 

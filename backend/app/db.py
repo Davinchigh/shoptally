@@ -1,7 +1,9 @@
+import os
 from collections.abc import Iterator
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.pool import NullPool
 
 from .config import get_settings
 
@@ -14,10 +16,13 @@ def make_engine(url: str):
     kwargs = {"pool_pre_ping": True}
     if url.startswith("sqlite"):
         kwargs["connect_args"] = {"check_same_thread": False}
+    elif os.environ.get("VERCEL"):
+        # Serverless: each function instance is short-lived, so let the database's own pooler hold connections.
+        kwargs["poolclass"] = NullPool
     return create_engine(url, **kwargs)
 
 
-engine = make_engine(get_settings().database_url)
+engine = make_engine(get_settings().sqlalchemy_url)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 
