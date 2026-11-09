@@ -5,12 +5,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 
-from fastapi.staticfiles import StaticFiles  # noqa: E402
-
-from app import seed  # noqa: E402
-from app.config import get_settings  # noqa: E402
-from app.db import Base, engine  # noqa: E402
-from app.main import app  # noqa: E402,F401  (Vercel serves this ASGI app)
+from app import seed
+from app.config import get_settings
+from app.db import Base, engine
+from app.main import app
+from fastapi.staticfiles import StaticFiles
 
 # Serverless platforms may not run ASGI lifespan events, so do the startup work at import (cold start).
 get_settings().check()
