@@ -2,6 +2,8 @@ const BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 const TOKEN_KEY = "shoptally.token";
 
 export type Product = { id: number; name: string; sku: string; price_pesewas: number; stock: number; reorder_level: number; low_stock: boolean };
+export type SaleItem = { product_id: number; quantity: number; unit_price_pesewas: number };
+export type Sale = { id: number; payment_method: "cash" | "momo"; momo_reference: string | null; customer_phone: string | null; total_pesewas: number; created_at: string; items: SaleItem[] };
 export type Daily = { date: string; sales_count: number; cash_pesewas: number; momo_pesewas: number; total_pesewas: number; low_stock: Product[] };
 export type Match = { sale_id: number; transaction_id: string; amount_pesewas: number; method: string; minutes_apart: number };
 export type Flag = {
@@ -77,6 +79,8 @@ export const api = {
     request<Product>(`/api/products/${id}/restock`, { method: "POST", body: JSON.stringify({ quantity }) }),
   sell: (body: { items: { product_id: number; quantity: number }[]; payment_method: "cash" | "momo"; momo_reference?: string }) =>
     request<{ id: number; total_pesewas: number }>("/api/sales", { method: "POST", body: JSON.stringify(body) }),
+  sales: (start: string, end: string) =>
+    request<Sale[]>(`/api/sales?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&limit=500`),
   daily: (day?: string) => request<Daily>(`/api/reports/daily${day ? `?day=${day}` : ""}`),
   reconcile: (file: File) => {
     const form = new FormData();

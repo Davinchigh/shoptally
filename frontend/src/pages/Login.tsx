@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { api, token } from "../api";
+import { Mark } from "../ui";
 
 export default function Login({ onDone }: { onDone: () => void }) {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -30,33 +31,38 @@ export default function Login({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="auth">
-      <div className="card stack">
-        <div className="brand"><span className="brand-mark" aria-hidden>₵</span>ShopTally</div>
-        <div className="stack" style={{ gap: 6 }}>
-          <h1>{mode === "login" ? "Welcome back" : "Set up your shop"}</h1>
-          <p className="muted">Record sales, watch your stock and check every MoMo payment against what you sold.</p>
-        </div>
+      <section className="hero">
+        <div className="brand"><Mark />ShopTally</div>
+        <h1>Know what you sold, and that every MoMo payment came in.</h1>
+        <p>Record sales at the counter, watch your stock, and check the day's MoMo statement against your receipts.</p>
+      </section>
+
+      <div className="panel">
+        <h2>{mode === "login" ? "Sign in to your shop" : "Set up your shop"}</h2>
         <form className="form" onSubmit={submit}>
           {mode === "register" && (
             <label>Shop name<input value={shop} onChange={(e) => setShop(e.target.value)} required minLength={2} autoComplete="organization" /></label>
           )}
-          <label>Email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" /></label>
+          <label>Email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" autoCapitalize="none" autoCorrect="off" /></label>
           <label>
             Password
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8}
               autoComplete={mode === "login" ? "current-password" : "new-password"} />
           </label>
-          {error && <p className="notice error" role="alert">{error}</p>}
-          <button className="button block" disabled={busy}>{busy ? "Please wait…" : mode === "login" ? "Sign in" : "Create shop"}</button>
+          {error && <p className="note error" role="alert">{error}</p>}
+          <button className="btn primary block" disabled={busy}>{busy ? "Signing in" : mode === "login" ? "Sign in" : "Create shop"}</button>
         </form>
-        <button className="button secondary block" disabled={busy} onClick={(e) => submit(e, true)}>Try the demo shop</button>
-        <p className="muted" style={{ textAlign: "center" }}>
-          {mode === "login" ? "New here? " : "Have an account? "}
-          <button className="button ghost" onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}>
+        <p className="or">or</p>
+        <button className="btn dark block" disabled={busy} onClick={(e) => submit(e, true)}>Try the demo shop</button>
+        <p className="muted small-center">The demo shop has made-up products and sales, so you can try everything safely.</p>
+        <p className="small-center">
+          {mode === "login" ? "New here?" : "Have an account?"}
+          <button className="btn link" onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}>
             {mode === "login" ? "Create a shop" : "Sign in"}
           </button>
         </p>
       </div>
+      <p className="foot"><a href="#privacy">How ShopTally uses your data</a></p>
     </div>
   );
 }

@@ -30,3 +30,12 @@ describe("cartTotal", () => {
     expect(cartTotal([{ productId: 1, quantity: 3, price: 10 }, { productId: 2, quantity: 1, price: 20 }])).toBe(50);
   });
 });
+
+describe("amount", () => {
+  it("drops the currency but keeps separators and sign", async () => {
+    const { amount } = await import("./money");
+    expect(amount(41200)).toBe("412.00");
+    expect(amount(1234567)).toBe("12,345.67");
+    expect(amount(-7100)).toBe("-71.00");
+  });
+});

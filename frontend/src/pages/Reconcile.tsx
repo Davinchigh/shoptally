@@ -1,12 +1,14 @@
 import { useRef, useState } from "react";
 import { api, type Flag, type Reconciliation } from "../api";
-import { ghs } from "../money";
+import { amount, ghs } from "../money";
+import { Icon } from "../ui";
 
-const FLAG: Record<Flag["kind"], { label: string; tone: string; hint: string }> = {
-  missing_payment: { label: "No payment", tone: "bad", hint: "Recorded as MoMo, but the money never arrived. Check with the customer." },
-  amount_mismatch: { label: "Wrong amount", tone: "bad", hint: "The customer paid a different amount from the sale." },
-  unrecorded_payment: { label: "No sale recorded", tone: "warn", hint: "Money came in that no sale explains. Was a sale missed?" },
-  duplicate_transaction: { label: "Duplicate line", tone: "info", hint: "The same transaction appears twice in the file. Counted once." },
+const ORDER: Flag["kind"][] = ["amount_mismatch", "missing_payment", "unrecorded_payment", "duplicate_transaction"];
+const KIND: Record<Flag["kind"], { title: string; why: string; copy: "off" | "none" | "stranger" | null }> = {
+  amount_mismatch: { title: "Paid a different amount", why: "The customer paid a different amount from the sale.", copy: "off" },
+  missing_payment: { title: "No payment yet", why: "Recorded as MoMo, but the money isn't on the statement. Check with the customer.", copy: "none" },
+  unrecorded_payment: { title: "Money with no sale", why: "Money came in that no sale explains. Was a sale missed?", copy: "stranger" },
+  duplicate_transaction: { title: "Same line twice", why: "The statement lists this transaction twice. It was counted once.", copy: null },
 };
 
 export default function Reconcile() {
@@ -34,78 +36,103 @@ export default function Reconcile() {
     run(new File([await res.blob()], "momo_statement_sample.csv", { type: "text/csv" }));
   }
 
+  const diff = result?.difference_pesewas ?? 0;
+
   return (
-    <div className="stack">
-      <div>
+    <>
+      <section className="hero">
         <h1>Check MoMo payments</h1>
-        <p className="muted">Upload the statement you exported from your MoMo account. Every payment is matched to a sale, and anything that doesn't add up is listed for you.</p>
-      </div>
+        {!result && <p>Upload the statement from your MoMo account. Each payment is matched to a receipt, and anything that doesn't add up is listed.</p>}
+        {result && (
+          <>
+            <p>{diff === 0 ? "Every cedi is accounted for." : diff < 0 ? `GHS ${amount(-diff)} less came in than you sold by MoMo.` : `GHS ${amount(diff)} more came in than you sold by MoMo.`}</p>
+            <div className="totals">
+              <div><span>You sold by MoMo</span><b>{amount(result.expected_pesewas)}</b></div>
+              <div><span>Statement received</span><b>{amount(result.received_pesewas)}</b></div>
+              <div><span>Matched</span><b>{result.matches.length} of {result.momo_sales_count}</b></div>
+              <div><span>Needs a look</span><b>{result.exceptions.length}</b></div>
+            </div>
+          </>
+        )}
+      </section>
 
       <div
-        className={`drop ${over ? "over" : ""}`}
+        className={`upload${over ? " over" : ""}`}
         onDragOver={(e) => { e.preventDefault(); setOver(true); }}
         onDragLeave={() => setOver(false)}
         onDrop={(e) => { e.preventDefault(); setOver(false); const f = e.dataTransfer.files[0]; if (f) run(f); }}
       >
-        <p><strong>Drop a CSV statement here</strong></p>
-        <p className="muted">or</p>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-          <button className="button" disabled={busy} onClick={() => input.current?.click()}>{busy ? "Checking…" : "Choose file"}</button>
-          <button className="button secondary" disabled={busy} onClick={useSample}>Use the sample statement</button>
+        <Icon name="upload" size={28} />
+        <p><b>{result ? "Check another statement" : "Drop the CSV statement here"}</b></p>
+        <div className="actions">
+          <button className="btn dark" disabled={busy} onClick={() => input.current?.click()}>{busy ? "Checking" : "Choose file"}</button>
+          <button className="btn quiet" disabled={busy} onClick={useSample}>Use the sample statement</button>
         </div>
         <input ref={input} type="file" accept=".csv,text/csv" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) run(f); e.target.value = ""; }} />
       </div>
 
-      {error && <p className="notice error" role="alert">{error}</p>}
+      {error && <p className="note error inset" role="alert">{error}</p>}
 
       {result && (
         <>
-          <div className="grid">
-            <div className="card stat"><p className="label">You recorded (MoMo)</p><p className="value num">{ghs(result.expected_pesewas)}</p><small className="muted">{result.momo_sales_count} sales</small></div>
-            <div className="card stat"><p className="label">Statement received</p><p className="value num">{ghs(result.received_pesewas)}</p><small className="muted">{result.statement_rows} payments</small></div>
-            <div className="card stat"><p className="label">Matched</p><p className="value num">{ghs(result.matched_pesewas)}</p><small className="muted">{result.matches.length} pairs</small></div>
-            <div className="card stat">
-              <p className="label">Difference</p>
-              <p className="value num" style={{ color: result.difference_pesewas === 0 ? "var(--ok)" : "var(--bad)" }}>{ghs(result.difference_pesewas)}</p>
-              <small className="muted">{result.difference_pesewas === 0 ? "All square" : result.difference_pesewas < 0 ? "Less than you sold" : "More than you sold"}</small>
+          <section className="section" aria-labelledby="look">
+            <div className="section-head"><h2 id="look">Needs a look</h2><span className="muted">{result.exceptions.length}</span></div>
+            {result.exceptions.length === 0 && <p className="note good"><Icon name="tick" size={20} />Every payment matches a receipt.</p>}
+            <div className="feed flush">
+              {[...result.exceptions].sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind)).map((f, i) => {
+                const k = KIND[f.kind];
+                const money = f.expected_pesewas ?? f.received_pesewas ?? 0;
+                return (
+                  <div className="slip" key={i}>
+                    {k.copy && <span className={`copy ${k.copy}`} aria-hidden="true" />}
+                    <div className={`paper${f.kind === "unrecorded_payment" ? " stranger" : ""}`}>
+                      <span className="top">
+                        <span className="no num">{f.sale_id ? `No. ${String(f.sale_id).padStart(4, "0")}` : "Statement only"}</span>
+                        <span>{f.transaction_id ?? "No transaction"}</span>
+                      </span>
+                      <span className="items">{k.title}</span>
+                      <span className="why">{f.message}</span>
+                      <span className="bottom">
+                        <span className="amt num" aria-label={ghs(money)}>{amount(money)}</span>
+                        <span className={`status ${f.kind === "duplicate_transaction" ? "plain" : "bad"}`}>
+                          {f.kind === "amount_mismatch" && f.received_pesewas !== null ? <><Icon name="alert" size={18} />Paid {amount(f.received_pesewas)}</> : f.kind === "duplicate_transaction" ? "Counted once" : <><Icon name="alert" size={18} />{k.title}</>}
+                        </span>
+                      </span>
+                      <span className="why">{k.why}</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
-
-          <section className="card">
-            <div className="section-head"><h2>Needs a look</h2><span className="muted">{result.exceptions.length}</span></div>
-            {result.exceptions.length === 0 && <p className="empty">Every payment matches a sale.</p>}
-            {result.exceptions.map((f, i) => (
-              <div className="row" key={i} style={{ alignItems: "flex-start" }}>
-                <div>
-                  <p>{f.message}</p>
-                  <small>{FLAG[f.kind].hint}</small>
-                </div>
-                <span className={`badge ${FLAG[f.kind].tone}`}>{FLAG[f.kind].label}</span>
-              </div>
-            ))}
           </section>
 
-          <section className="card">
-            <div className="section-head"><h2>Matched</h2><span className="muted">{result.matches.length}</span></div>
-            {result.matches.length === 0 && <p className="empty">Nothing matched yet.</p>}
-            {result.matches.map((m) => (
-              <div className="row" key={m.transaction_id}>
-                <div>
-                  <p className="name num">Sale #{m.sale_id} · {ghs(m.amount_pesewas)}</p>
-                  <small>{m.transaction_id} · {m.method === "reference" ? "matched by transaction ID" : `matched by amount, ${m.minutes_apart} min apart`}</small>
+          <section className="section" aria-labelledby="matched">
+            <div className="section-head"><h2 id="matched">Matched</h2><span className="muted">{result.matches.length}</span></div>
+            {result.matches.length === 0 && <div className="empty"><strong>Nothing matched yet</strong>Check the statement covers the right days.</div>}
+            <div className="feed flush">
+              {result.matches.map((m, i) => (
+                <div className="slip" key={m.transaction_id}>
+                  <span className="copy align" style={{ ["--i" as string]: i }} aria-hidden="true" />
+                  <div className="paper">
+                    <span className="top"><span className="no num">No. {String(m.sale_id).padStart(4, "0")}</span><span>{m.transaction_id}</span></span>
+                    <span className="bottom">
+                      <span className="amt num" aria-label={ghs(m.amount_pesewas)}>{amount(m.amount_pesewas)}</span>
+                      <span className="status ok"><Icon name="tick" size={18} />{m.method === "reference" ? "By transaction ID" : `By amount, ${m.minutes_apart} min apart`}</span>
+                    </span>
+                  </div>
                 </div>
-                <span className="badge ok">✓ Paid</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </section>
 
           {result.skipped_rows.length > 0 && (
-            <details className="card"><summary>{result.skipped_rows.length} lines in the file couldn't be read</summary>
+            <details className="section">
+              <summary>{result.skipped_rows.length} line{result.skipped_rows.length === 1 ? "" : "s"} in the file couldn't be read</summary>
               <ul>{result.skipped_rows.map((s) => <li key={s}>{s}</li>)}</ul>
             </details>
           )}
         </>
       )}
-    </div>
+    </>
   );
 }

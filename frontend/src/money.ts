@@ -7,6 +7,11 @@ export function ghs(pesewas: number): string {
   return `${sign}GHS ${cedis}.${rest}`;
 }
 
+/** The same figure without the currency, for places where "GHS" is already said once nearby. */
+export function amount(pesewas: number): string {
+  return ghs(pesewas).replace("GHS ", "");
+}
+
 /** "12.5" or "12,000.50" typed by a person -> pesewas. Returns null when it is not a usable price. */
 export function toPesewas(input: string): number | null {
   const cleaned = input.replace(/[,\s]/g, "").replace(/^GHS/i, "");
